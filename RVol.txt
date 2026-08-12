@@ -1,0 +1,5 @@
+declare upper;
+input length = 20;
+def avgVol = Average(volume, length);
+def rVol = volume / avgVol;
+AddLabel(yes, "RVOL: " + Round(rVol, 2), if rVol >= 2 then Color.GREEN else if rVol >= 1 then Color.LIGHT_GREEN else Color.RED);
