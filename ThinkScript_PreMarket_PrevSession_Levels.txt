@@ -1,0 +1,78 @@
+#
+# PreMarket_PrevSession_Levels
+#
+# Plots four horizontal levels on an intraday thinkorswim chart:
+#   - Today's pre-market high / low (yellow)
+#   - The PREVIOUS regular session's high / low (magenta), drawn as a
+#     continuous line across the whole chart
+#
+# Requirements:
+#   - Chart aggregation must be intraday (e.g. 1 min - 30 min), not Daily/Weekly.
+#   - Chart Settings > "Extended Trading Hours" must be turned ON, or there is no
+#     pre-market data for the script to see.
+#
+# Install:
+#   Studies > Edit Studies > Create... > paste this whole script > OK > Apply
+#
+# Notes on the approach:
+#   - "Today" and "the previous trading day" are found by looking at explicit
+#     calendar dates rather than bar-to-bar transitions, which is far more
+#     reliable across different chart timeframes/periods.
+#   - Bars are only counted toward a date if volume > 0, which filters out
+#     empty placeholder bars some charts create for the next session right
+#     after market close (this caused "today" to be miscounted as tomorrow
+#     on some timeframes during testing).
+#
+
+declare upper;
+
+input preMarketStartTime = 0400;
+input preMarketEndTime   = 0930;
+input sessionStartTime   = 0930;
+input sessionEndTime     = 1600;
+input showPreMarketLevels = yes;
+input showPrevSessionLevels = yes;
+
+def inPreMarket = SecondsFromTime(preMarketStartTime) >= 0 and SecondsTillTime(preMarketEndTime) > 0;
+def inSession    = SecondsFromTime(sessionStartTime) >= 0 and SecondsTillTime(sessionEndTime) > 0;
+
+def hasData = volume > 0;
+
+def todayCandidate = if hasData then GetYYYYMMDD() else 0;
+def today = HighestAll(todayCandidate);
+def isToday = GetYYYYMMDD() == today;
+
+def pastDateOnly = if hasData and GetYYYYMMDD() < today then GetYYYYMMDD() else 0;
+def prevDay = HighestAll(pastDateOnly);
+def isPrevDay = GetYYYYMMDD() == prevDay;
+
+def pmHigh = HighestAll(if isToday and inPreMarket then high else Double.NaN);
+def pmLow  = LowestAll(if isToday and inPreMarket then low else Double.NaN);
+
+def prevSessHigh = HighestAll(if isPrevDay and inSession then high else Double.NaN);
+def prevSessLow  = LowestAll(if isPrevDay and inSession then low else Double.NaN);
+
+plot PreMarketHigh    = if showPreMarketLevels then pmHigh else Double.NaN;
+plot PreMarketLow     = if showPreMarketLevels then pmLow else Double.NaN;
+plot PrevSessionHigh  = if showPrevSessionLevels then prevSessHigh else Double.NaN;
+plot PrevSessionLow   = if showPrevSessionLevels then prevSessLow else Double.NaN;
+
+PreMarketHigh.SetDefaultColor(Color.YELLOW);
+PreMarketHigh.SetStyle(Curve.SHORT_DASH);
+PreMarketHigh.SetLineWeight(2);
+PreMarketHigh.SetPaintingStrategy(PaintingStrategy.HORIZONTAL);
+
+PreMarketLow.SetDefaultColor(Color.YELLOW);
+PreMarketLow.SetStyle(Curve.SHORT_DASH);
+PreMarketLow.SetLineWeight(2);
+PreMarketLow.SetPaintingStrategy(PaintingStrategy.HORIZONTAL);
+
+PrevSessionHigh.SetDefaultColor(Color.MAGENTA);
+PrevSessionHigh.SetStyle(Curve.LONG_DASH);
+PrevSessionHigh.SetLineWeight(2);
+PrevSessionHigh.SetPaintingStrategy(PaintingStrategy.HORIZONTAL);
+
+PrevSessionLow.SetDefaultColor(Color.MAGENTA);
+PrevSessionLow.SetStyle(Curve.LONG_DASH);
+PrevSessionLow.SetLineWeight(2);
+PrevSessionLow.SetPaintingStrategy(PaintingStrategy.HORIZONTAL);

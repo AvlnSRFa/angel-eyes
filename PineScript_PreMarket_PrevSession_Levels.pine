@@ -1,0 +1,54 @@
+//@version=5
+// PreMarket & Previous Session Levels
+//
+// Plots:
+//   - Today's pre-market high / low (yellow)
+//   - The previous regular session's high / low (magenta)
+//
+// Port of a thinkorswim thinkScript study. Not yet live-tested on
+// TradingView charts, so treat as a solid first draft — if the Pine
+// editor flags an error or a value looks off, share a screenshot and
+// it can be adjusted the same way the thinkScript version was debugged.
+//
+// Notes on the approach:
+//   - Previous session high/low is pulled from the daily ("1D") timeframe
+//     one bar back (request.security with an offset), which is the
+//     standard, reliable way to get "yesterday's" regular-session range
+//     without manually tracking day-to-day bar transitions.
+//   - Pre-market high/low is tracked on the current (intraday) timeframe
+//     using a defined pre-market session window, resetting each new day.
+//   - Requires "Extended Hours" to be enabled on the chart, and an
+//     intraday timeframe (not Daily/Weekly), to see pre-market data.
+
+indicator("PreMarket & Previous Session Levels", overlay = true)
+
+showPreMarket   = input.bool(true, "Show Pre-Market Levels")
+showPrevSession = input.bool(true, "Show Previous Session Levels")
+
+premarketSession = input.session("0400-0930", "Pre-Market Session (ET)")
+
+nyTime = "America/New_York"
+
+inPreMarket = not na(time(timeframe.period, premarketSession, nyTime))
+isNewDay    = ta.change(time("D", nyTime)) != 0
+
+// --- Today's pre-market high / low, resets each day, holds after pre-market ends ---
+var float pmHigh = na
+var float pmLow  = na
+
+if inPreMarket and (isNewDay or not inPreMarket[1])
+    pmHigh := high
+    pmLow  := low
+else if inPreMarket
+    pmHigh := math.max(pmHigh, high)
+    pmLow  := math.min(pmLow, low)
+
+// --- Previous regular session high / low, via the daily timeframe one bar back ---
+prevSessHigh = request.security(syminfo.tickerid, "1D", high[1], lookahead = barmerge.lookahead_off)
+prevSessLow  = request.security(syminfo.tickerid, "1D", low[1],  lookahead = barmerge.lookahead_off)
+
+plot(showPreMarket ? pmHigh : na, title = "PreMarket High", color = color.yellow, style = plot.style_linebr, linewidth = 2)
+plot(showPreMarket ? pmLow  : na, title = "PreMarket Low",  color = color.yellow, style = plot.style_linebr, linewidth = 2)
+
+plot(showPrevSession ? prevSessHigh : na, title = "Prev Session High", color = color.fuchsia, style = plot.style_linebr, linewidth = 2)
+plot(showPrevSession ? prevSessLow  : na, title = "Prev Session Low",  color = color.fuchsia, style = plot.style_linebr, linewidth = 2)
