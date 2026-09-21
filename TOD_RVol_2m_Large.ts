@@ -1,3 +1,7 @@
+# Thinkorswim thinkScript
+# Time-of-Day Relative Volume — 2-minute chart
+# Compares each current 2-minute bar with the same time slot
+# across the previous 10 regular trading sessions.
 declare upper;
 
 input comparisonDays = 10;
