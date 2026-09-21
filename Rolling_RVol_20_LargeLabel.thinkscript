@@ -1,0 +1,40 @@
+# Thinkorswim thinkScript
+# Rolling Relative Volume — 20-bar comparison
+# Displays a lower-panel line and large current-value label.
+# On a 2-minute chart, the baseline covers approximately 40 minutes.
+# Rolling Relative Volume
+# Measures current 2-minute bar volume versus
+# the average volume of the most recent bars.
+#
+# With length = 20 on a 2-minute chart,
+# baseline = approximately the last 40 minutes.
+
+declare lower;
+
+input length = 20;
+
+def avgVol = Average(volume, length);
+
+def rollingValue =
+    if avgVol > 0
+    then volume / avgVol
+    else Double.NaN;
+
+plot RVol = rollingValue;
+RVol.SetLineWeight(2);
+
+# 1.0 = current volume equals its recent average
+plot Normal = 1.0;
+Normal.SetDefaultColor(Color.GRAY);
+Normal.SetStyle(Curve.SHORT_DASH);
+AddLabel(
+    yes,
+    "ROLLING RVOL  " + AsText(Round(rollingValue, 2)) + "x",
+    if rollingValue >= 3 then Color.MAGENTA
+    else if rollingValue >= 2 then Color.CYAN
+    else if rollingValue >= 1 then Color.GREEN
+    else Color.GRAY,
+    Location.TOP_LEFT,
+    FontSize.X_LARGE,
+    yes
+);
